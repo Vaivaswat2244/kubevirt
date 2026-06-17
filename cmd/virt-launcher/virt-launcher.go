@@ -449,6 +449,7 @@ func main() {
 	hookFuncs := []premigrationhookserver.HookFunc{
 		cpuhook.CPUDedicatedHook,
 		disk.DiskSourcePathHook,
+		disk.ContainerDiskPathHook,
 	}
 	if *ifacesOrdinalNamingUpgradeEnabled {
 		hookFuncs = append(hookFuncs, network.UpgradeOrdinalNamingScheme)
