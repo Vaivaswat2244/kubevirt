@@ -108,6 +108,36 @@ var _ = Describe("Install Strategy", func() {
 		)
 	})
 
+	Context("explicit ServiceMonitorNamespace", func() {
+		buildExplicitConfig := func() *util.KubeVirtDeploymentConfig {
+			envVarManager := &util.EnvVarManagerMock{}
+			json := `{"id":"9ca7273e4d5f1bee842f64a8baabc15cbbf1ce59","namespace":"fake-namespace","registry":"fake-registry","kubeVirtVersion":"v9.9.9","additionalProperties":{"ServiceMonitorNamespace":"openshift-monitoring"}}`
+			envVarManager.Setenv(util.TargetDeploymentConfig, json)
+
+			explicitConfig, err := getConfigFromEnvWithEnvVarManager(envVarManager)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(explicitConfig.GetServiceMonitorNamespace()).To(Equal("openshift-monitoring"))
+			return explicitConfig
+		}
+
+		It("should fail to generate install strategy when ServiceAccount is not found", func() {
+			explicitConfig := buildExplicitConfig()
+
+			// empty monitorNamespace simulates the ServiceAccount lookup failing to find it
+			_, err := GenerateCurrentInstallStrategy(explicitConfig, "", namespace)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("openshift-monitoring"))
+		})
+
+		It("should still succeed when ServiceAccount is found", func() {
+			explicitConfig := buildExplicitConfig()
+
+			strategy, err := GenerateCurrentInstallStrategy(explicitConfig, "openshift-monitoring", namespace)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(strategy.ServiceMonitors()).To(HaveLen(1))
+		})
+	})
+
 	Context("should generate", func() {
 		It("install strategy convertable back to objects", func() {
 			strategy, err := GenerateCurrentInstallStrategy(config, "openshift-monitoring", namespace)

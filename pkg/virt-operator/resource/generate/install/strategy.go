@@ -521,9 +521,16 @@ func GenerateCurrentInstallStrategy(config *operatorutil.KubeVirtDeploymentConfi
 
 	monitorServiceAccount := config.GetMonitorServiceAccountName()
 	isServiceAccountFound := monitorNamespace != ""
+	explicitServiceMonitorNamespace := config.GetServiceMonitorNamespace()
+
+	if explicitServiceMonitorNamespace != "" && !isServiceAccountFound {
+		return nil, fmt.Errorf(
+			"serviceMonitorNamespace %q is explicitly configured but ServiceAccount %q was not found in any monitoring namespace %v; refusing to generate an install strategy that would silently disable monitoring",
+			explicitServiceMonitorNamespace, monitorServiceAccount, strings.Join(config.GetPotentialMonitorNamespaces(), ", "))
+	}
 
 	if isServiceAccountFound {
-		serviceMonitorNamespace := config.GetServiceMonitorNamespace()
+		serviceMonitorNamespace := explicitServiceMonitorNamespace
 		if serviceMonitorNamespace == "" {
 			serviceMonitorNamespace = monitorNamespace
 		}
