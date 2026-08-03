@@ -2054,6 +2054,9 @@ var _ = Describe("Manager", func() {
 			monitor := newMigrationMonitor(vmi, manager, options, migrationDone)
 			monitor.startMonitor(make(chan error, 1))
 			Eventually(abortStatus, 500*time.Millisecond, 50*time.Millisecond).Should(Equal(string(v1.MigrationAbortSucceeded)))
+			// AbortJob closes migrationDone, which lets startMonitor return while the
+			// async abort goroutine still has to free its own domain reference.
+			manager.abortWg.Wait()
 		},
 			Entry("because GetJobStats keeps failing", func() {
 				mockLibvirt.DomainEXPECT().GetJobStats(libvirt.DomainGetJobStatsFlags(0)).AnyTimes().Return(nil, fmt.Errorf("persistent stats error"))
